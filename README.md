@@ -31,6 +31,32 @@ Stockly is designed to help businesses and individuals efficiently manage their 
 
 ---
 
+## ⚡ Quick Start
+
+Get up and running in 2 minutes with Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/stockly.git
+cd stockly
+
+# Start with Docker (Linux/macOS)
+chmod +x dev.sh
+./dev.sh start
+
+# Or on Windows
+dev.bat start
+
+# Access the application
+# http://localhost:3000
+```
+
+That's it! MongoDB and the application will be automatically configured and running.
+
+**Don't have Docker?** Skip to the [Manual Setup](#-manual-development-setup-alternative) section.
+
+---
+
 ## 🚀 Features
 
 ### Core Functionality
@@ -94,14 +120,15 @@ Stockly is designed to help businesses and individuals efficiently manage their 
 ### Backend
 
 - **Next.js API Routes**: Server-side API endpoints
-- **Prisma ORM**: Type-safe database operations
-- **MongoDB**: NoSQL database
+- **Prisma ORM**: Type-safe database operations with transaction support
+- **MongoDB**: NoSQL database with replica set configuration for transactions
 - **JWT**: JSON Web Token authentication
 - **bcryptjs**: Password hashing
 - **Axios**: HTTP client for API requests
 
 ### Development Tools
 
+- **Docker**: Containerized development environment
 - **ESLint**: Code linting and formatting
 - **PostCSS**: CSS processing
 - **Autoprefixer**: CSS vendor prefixing
@@ -195,9 +222,19 @@ stockly/
 ├── middleware/                   # Next.js middleware
 │   └── authMiddleware.ts         # Authentication middleware
 ├── middleware.ts                 # Route protection middleware
-└── public/                       # Static assets
-    ├── favicon.ico
-    └── ...                       # Other static files
+├── docker/                       # Docker configuration
+│   ├── mongo-init.js             # MongoDB initialization script
+│   └── start.sh                  # Application startup script
+├── public/                       # Static assets
+│   ├── favicon.ico
+│   └── ...                       # Other static files
+├── Dockerfile                    # Docker image configuration
+├── docker-compose.yml            # Docker services configuration
+├── .dockerignore                 # Docker ignore patterns
+├── .gitattributes                # Git line ending configuration
+├── .env.docker                   # Docker environment template
+├── dev.sh                        # Development helper script (Linux/macOS)
+└── dev.bat                       # Development helper script (Windows)
 ```
 
 ---
@@ -273,6 +310,146 @@ stockly/
 
 ---
 
+## 🐳 Docker Development Setup (Recommended)
+
+The easiest way to get started is using Docker, which provides a complete development environment without any local setup requirements.
+
+### Prerequisites for Docker Setup
+
+- **Docker**: Latest version
+- **Docker Compose**: Latest version
+- **Git**: Version control
+
+### Quick Start with Docker
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/your-username/stockly.git
+   cd stockly
+   ```
+
+2. **Start the development environment**
+
+   **Linux/macOS:**
+   ```bash
+   chmod +x dev.sh
+   ./dev.sh start
+   ```
+
+   **Windows:**
+   ```cmd
+   dev.bat start
+   ```
+
+3. **Access the application**
+   - Application: [http://localhost:3000](http://localhost:3000)
+   - MongoDB: `mongodb://localhost:27017`
+
+That's it! The application will automatically:
+- Set up MongoDB with proper configuration
+- Install all dependencies
+- Generate Prisma client
+- Push database schema
+- Start the development server with hot reload
+
+### Docker Development Commands
+
+**Linux/macOS (`./dev.sh`):**
+```bash
+./dev.sh start         # Start the development environment
+./dev.sh stop          # Stop the development environment
+./dev.sh restart       # Restart the development environment
+./dev.sh logs          # View logs from all services
+./dev.sh logs app      # View logs from app service only
+./dev.sh status        # Show status of all services
+./dev.sh shell         # Enter the app container shell
+./dev.sh db reset      # Reset database (⚠️  deletes all data)
+./dev.sh db studio     # Open Prisma Studio
+./dev.sh db generate   # Generate Prisma client
+./dev.sh cleanup       # Clean up Docker resources
+./dev.sh help          # Show help
+```
+
+**Windows (`dev.bat`):**
+```cmd
+dev.bat start         # Start the development environment
+dev.bat stop          # Stop the development environment
+dev.bat restart       # Restart the development environment
+dev.bat logs          # View logs from all services
+dev.bat logs app      # View logs from app service only
+dev.bat status        # Show status of all services
+dev.bat shell         # Enter the app container shell
+dev.bat db reset      # Reset database (⚠️  deletes all data)
+dev.bat db studio     # Open Prisma Studio
+dev.bat db generate   # Generate Prisma client
+dev.bat cleanup       # Clean up Docker resources
+dev.bat help          # Show help
+```
+
+### Docker Services
+
+The development environment includes:
+
+- **MongoDB 5.0.3 (Replica Set)**: Database with automatic initialization and replica set configuration for Prisma compatibility
+- **Next.js Application**: Running in development mode with hot reload
+- **Volume Mounts**: For live code editing and persistent data
+- **Health Checks**: Ensuring services are ready before starting dependent services
+
+> **Note**: We use `prismagraphql/mongo-single-replica:5.0.3` instead of standard MongoDB because Prisma requires a replica set configuration for transaction support, even in single-node setups.
+
+### Docker Environment Variables
+
+The Docker setup uses these environment variables (automatically configured):
+
+```env
+NODE_ENV=development
+DATABASE_URL=mongodb://admin:password123@mongodb:27017/stockly?authSource=admin&directConnection=true&retryWrites=true&w=majority
+JWT_SECRET=your-super-secret-jwt-key-for-development-only
+JWT_EXPIRES_IN=24h
+WATCHPACK_POLLING=true
+```
+
+> **Important**: The `directConnection=true` and `authSource=admin` parameters in the DATABASE_URL are required for proper connection to the MongoDB replica set.
+
+### Troubleshooting Docker Setup
+
+**Container Issues:**
+```bash
+# View detailed logs
+./dev.sh logs
+
+# Restart services
+./dev.sh restart
+
+# Clean up and restart fresh
+./dev.sh cleanup
+./dev.sh start
+```
+
+**Database Connection Issues:**
+```bash
+# Reset database
+./dev.sh db reset
+
+# Check MongoDB logs
+docker-compose logs mongodb
+```
+
+**Prisma Transaction Errors:**
+If you see errors like "Prisma needs to perform transactions, which requires your MongoDB server to be run as a replica set", this indicates the MongoDB replica set isn't properly configured. Our Docker setup automatically handles this with the `prismagraphql/mongo-single-replica` image.
+
+**Port Conflicts:**
+If ports 3000 or 27017 are already in use, you can modify the `docker-compose.yml` file to use different ports.
+
+---
+
+## 💻 Manual Development Setup (Alternative)
+
+If you prefer to set up the development environment manually without Docker:
+
+> **⚠️ Important Note**: When setting up MongoDB manually, you need a replica set configuration for Prisma to work properly with transactions. MongoDB Atlas automatically provides this, but local MongoDB installations require additional setup. We recommend using the Docker setup for simplicity.
+
 ## 🔧 Environment Variables
 
 ### Required Variables
@@ -297,6 +474,28 @@ stockly/
 3. Get your connection string
 4. Replace `username`, `password`, and `cluster` with your values
 5. Add the connection string to your `.env` file
+
+> **Recommended**: MongoDB Atlas automatically provides replica set configuration required by Prisma for transactions.
+
+### Local MongoDB Setup (Advanced)
+
+For local MongoDB installations, you need to configure a replica set:
+
+1. **Install MongoDB** following the official documentation
+2. **Configure replica set** by starting MongoDB with replica set options:
+   ```bash
+   mongod --replSet rs0 --port 27017 --dbpath /data/db
+   ```
+3. **Initialize replica set** in MongoDB shell:
+   ```javascript
+   rs.initiate()
+   ```
+4. **Update your DATABASE_URL** to include replica set parameters:
+   ```
+   DATABASE_URL="mongodb://localhost:27017/stockly?replicaSet=rs0"
+   ```
+
+> **Note**: This is complex setup. We recommend using Docker or MongoDB Atlas instead.
 
 ---
 
@@ -817,7 +1016,96 @@ const analyticsData = useMemo(() => {
 
 ## 🚀 Deployment
 
-### Vercel Deployment (Recommended)
+### Docker Production Deployment
+
+For production deployment using Docker:
+
+1. **Create production Docker Compose file (`docker-compose.prod.yml`):**
+
+   ```yaml
+   version: '3.8'
+
+   services:
+     mongodb:
+       image: mongo:7.0
+       container_name: stockly-mongodb-prod
+       restart: unless-stopped
+       environment:
+         MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+         MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+         MONGO_INITDB_DATABASE: stockly
+       volumes:
+         - mongodb_prod_data:/data/db
+       networks:
+         - stockly-prod-network
+
+     app:
+       build:
+         context: .
+         dockerfile: Dockerfile.prod
+       container_name: stockly-app-prod
+       restart: unless-stopped
+       environment:
+         - NODE_ENV=production
+         - DATABASE_URL=${DATABASE_URL}
+         - JWT_SECRET=${JWT_SECRET}
+         - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+       ports:
+         - "3000:3000"
+       depends_on:
+         - mongodb
+       networks:
+         - stockly-prod-network
+
+   volumes:
+     mongodb_prod_data:
+
+   networks:
+     stockly-prod-network:
+       driver: bridge
+   ```
+
+2. **Create production Dockerfile (`Dockerfile.prod`):**
+
+   ```dockerfile
+   FROM node:20-alpine AS base
+   
+   FROM base AS deps
+   RUN apk add --no-cache libc6-compat
+   WORKDIR /app
+   COPY package.json package-lock.json* ./
+   RUN npm ci --only=production && npm cache clean --force
+   
+   FROM base AS builder
+   WORKDIR /app
+   COPY --from=deps /app/node_modules ./node_modules
+   COPY . .
+   RUN npx prisma generate
+   RUN npm run build
+   
+   FROM base AS runner
+   WORKDIR /app
+   ENV NODE_ENV=production
+   RUN addgroup --system --gid 1001 nodejs
+   RUN adduser --system --uid 1001 nextjs
+   COPY --from=builder /app/public ./public
+   COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+   COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+   COPY --from=builder /app/prisma ./prisma
+   COPY --from=deps /app/node_modules ./node_modules
+   USER nextjs
+   EXPOSE 3000
+   ENV PORT=3000
+   CMD ["node", "server.js"]
+   ```
+
+3. **Deploy with production configuration:**
+
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+### Vercel Deployment (Recommended for Serverless)
 
 1. **Connect your GitHub repository to Vercel**
 2. **Set environment variables in Vercel dashboard**
@@ -828,6 +1116,7 @@ const analyticsData = useMemo(() => {
 ```env
 DATABASE_URL="your-production-mongodb-url"
 JWT_SECRET="your-production-jwt-secret"
+JWT_EXPIRES_IN="1h"
 ```
 
 ### Build Commands
@@ -935,6 +1224,18 @@ npx prisma db pull
 # Reset database (development only)
 npx prisma db push --force-reset
 ```
+
+**MongoDB Replica Set Errors:**
+If you encounter errors like "Prisma needs to perform transactions, which requires your MongoDB server to be run as a replica set":
+
+- **Using Docker (Recommended)**: Our Docker setup automatically handles this with `prismagraphql/mongo-single-replica` image
+- **MongoDB Atlas**: Automatically provides replica set configuration  
+- **Local MongoDB**: Requires manual replica set setup (see Manual Setup section)
+
+**Connection String Issues:**
+- Ensure `directConnection=true` parameter for single-node replica sets
+- Include `authSource=admin` for authenticated connections
+- Use `retryWrites=true&w=majority` for proper write concerns
 
 #### Build Errors
 

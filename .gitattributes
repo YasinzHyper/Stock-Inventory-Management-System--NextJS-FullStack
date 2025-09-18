@@ -1,0 +1,27 @@
+# Line endings
+* text=auto eol=lf
+
+# These files are text and should be normalized (Convert crlf => lf)
+*.css text
+*.html text
+*.js text
+*.json text
+*.jsx text
+*.md text
+*.ts text
+*.tsx text
+*.xml text
+*.yaml text
+*.yml text
+
+# These files are binary and should be left untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

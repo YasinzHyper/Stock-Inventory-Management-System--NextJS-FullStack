@@ -1,0 +1,54 @@
+services:
+  # MongoDB service for production with replica set
+  mongodb:
+    image: prismagraphql/mongo-single-replica:5.0.3
+    container_name: stockly-mongodb-prod
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-productionpassword}
+      MONGO_INITDB_DATABASE: stockly
+    volumes:
+      - mongodb_prod_data:/data/db
+    networks:
+      - stockly-prod-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Next.js application for production
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: stockly-app-prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL:-mongodb://admin:productionpassword@mongodb:27017/stockly?authSource=admin&directConnection=true&retryWrites=true&w=majority}
+      - JWT_SECRET=${JWT_SECRET:-your-production-jwt-secret-change-this}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-1h}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - stockly-prod-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mongodb_prod_data:
+    driver: local
+
+networks:
+  stockly-prod-network:
+    driver: bridge
